@@ -9,7 +9,7 @@ mdot = V_litre_min*ro/60000; % kg/sec
 mu = 0.890*10^-3; % Dynamic viscosity of water
 k_water = 0.6; % Thermal conductivity of water @ approx 25 celsius
 
-params.G = 437;%437; % Solar irradiation 
+params.G = 436;%437; % Solar irradiation 
 params.Tamb = 17 + 273.15; 
 params.Tsky = 15 + 273.15; 
 params.h_wind = 2.8 + 3*vwind;
@@ -30,7 +30,7 @@ Re_D = 4*mdot/(3.14*D_i*mu);
 Pr = 4182*mu/k_water;
 
 if Re_D < 2300
-    Nu = 4.36; % Fully developed laminar (constant heat flux)
+    Nu_D = 3.66; % Const wall temp
 
 elseif Re_D < 3000
     % Gnielinski evaluated at Re = 3000
@@ -40,11 +40,11 @@ elseif Re_D < 3000
     
     % Linear interpolation across 2300 <= Re < 3000
     gamma = (Re_D - 2300) / (3000 - 2300);
-    Nu = (1 - gamma) * 4.36 + gamma * Nu_3000;
+    Nu_D = (1 - gamma) * 4.36 + gamma * Nu_3000;
 else
     % Standard Gnielinski for Re >= 3000
     f = (0.790 * log(Re_D) - 1.64)^(-2);
-    Nu = ((f / 8) * (Re_D - 1000) * Pr) / ...
+    Nu_D = ((f / 8) * (Re_D - 1000) * Pr) / ...
          (1 + 12.7 * sqrt(f / 8) * (Pr^(2/3) - 1));
 end
 
