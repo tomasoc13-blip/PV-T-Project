@@ -1,4 +1,4 @@
-function [F1, Tout, Q_useful] = bare_residual(Tp, params)
+function [F1, Tout, Q_useful, Q_elec, Q_loss_conv, Q_loss_rad] = bare_residual(Tp, params)
     % Unpack environmental parameters
     G = params.G;
     Tamb = params.Tamb;
@@ -15,19 +15,18 @@ function [F1, Tout, Q_useful] = bare_residual(Tp, params)
     hfi = params.hfi;
     sigma = 5.670374419e-8; 
 
-    % --- NEW: PV Electrical Efficiency Calculations ---
+    % --- PV Electrical Efficiency Calculations ---
     T_ref = 25 + 273.15;      % Reference temperature (25 °C in Kelvin)
-    eta_ref = 0.18;           % Base electrical efficiency (e.g., 18% for modern silicon)
-    beta_tc = 0.004;          % Temperature coefficient (0.4% drop per °C above 25°C)
+    eta_ref = 0.25;           % Base electrical efficiency (e.g., 25%)
+    beta_tc = 0.0026;         % Temperature coefficient
     
-    % Actual efficiency drops as the plate temperature (Tp) rises
+    % Actual efficiency drops as plate temperature (Tp) rises
     eta_elec = eta_ref * (1 - beta_tc * (Tp - T_ref));
-    eta_elec = max(0, eta_elec); % Prevent negative efficiency if plate gets extremely hot
+    eta_elec = max(0, eta_elec); 
     
     % Electrical power generated (W)
     Q_elec = eta_elec * G * Ac;
-    % --------------------------------------------------
-
+    
     % 1. Calculate T_out using the constant wall temperature HX equation
     Tout = Tp - (Tp - Tin) * exp(-(P * L * hfi) / (mdot * Cp));
     
@@ -38,8 +37,7 @@ function [F1, Tout, Q_useful] = bare_residual(Tp, params)
     Q_loss_conv = h_wind * Ac * (Tp - Tamb);
     Q_loss_rad  = eps_p * sigma * Ac * (Tp^4 - Tsky^4);
     
-    % 4. The Residual: Net Solar Income (Solar minus Electricity) = Thermal Useful + Losses
+    % 4. The Residual
     Net_Solar_Thermal = (alpha * G * Ac) - Q_elec;
-    
     F1 = Net_Solar_Thermal - Q_useful - (Q_loss_conv + Q_loss_rad);
 end

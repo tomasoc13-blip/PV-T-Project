@@ -4,14 +4,14 @@ clc; close all;
 D_i = 20*(10^-3); % Convert mm to m, inner diameter
 vwind = 20*(1000)/(60^2); % convert kmh to m/s
 ro = 998; % water density, kg/m^3
-V_litre_min = 3; % Design parameter
+V_litre_min = 2; % Design parameter
 mdot = V_litre_min*ro/60000; % kg/sec
-mu = 0.890*10^-3; % Dynamic viscosity of water
+mu = 0.890*10^-3; % Dynamic viscosity of wate
 k_water = 0.6; % Thermal conductivity of water @ approx 25 celsius
 
 params.G = 436;%437; % Solar irradiation 
-params.Tamb = 17 + 273.15; 
-params.Tsky = 15 + 273.15; 
+params.Tamb = 15 + 273.15; 
+params.Tsky = 10 + 273.15; 
 params.h_wind = 2.8 + 3*vwind;
 params.Tin = 10 + 273.15;
 params.mdot = mdot;
@@ -20,7 +20,8 @@ params.Ac = 2; % Assigned absorber area
 params.alpha = 0.9; 
 params.eps_p = 0.9;
 params.P = 3.14*(D_i); % Wetted perimeter
-params.L = 10; % Total length of piping
+params.L = 20; % Total length of piping
+params.Lgap = 0.06;
 
 % 
 params.h_gap = 2; % Convective heat transfer coefficient for the stagnant air gap (W/m^2K)
@@ -76,19 +77,22 @@ for step = 1:max_steps
     Tp_guess = T_tank + 10; 
     Tp_solved = fzero(@(Tp) glazed_residual(Tp, params), Tp_guess, options);
     
-% 3. Extract outputs for this minute (now including Q_elec)
-    [~, Tout_solved, Q_useful_solved, h_gap_solved, Q_elec_solved, eta_elec] = glazed_residual(Tp_solved, params);
-    
+% 3. Extract outputs for this minute 
+    [~, Tout_solved, Q_useful_solved, h_gap_solved, Q_elec_solved, eta_elec, Q_loss_rad, Q_loss_conv] = glazed_residual(Tp_solved, params);
+    P_pump = 8; % Assume 8 W constant power draw for pump
+
+
     % Store history 
     elapsed_hours = (step - 1) / 60;
     time_history(step) = elapsed_hours;
     tank_temp_history(step) = T_tank - 273.15;
     tout_history(step) = Tout_solved - 273.15;
+    h_gap_history(step) = h_gap_solved; %  Store h_gap history
     
-    % Print progress including electrical power
+    % Print progress including h_gap
     if mod(step - 1, 15) == 0
-        fprintf('Time: %5.2f hrs | Tank: %5.2f °C | Thermal: %5.1f W | Elec: %5.1f W | Eta_elec: %5.3f\n', ...
-            elapsed_hours, tank_temp_history(step), Q_useful_solved, Q_elec_solved, eta_elec);
+        fprintf('Time: %5.2f hrs | Tank: %5.2f °C | Thermal: %5.1f W | Elec: %5.1f W | h_gap: %5.2f W/m^2K | Q_loss_rad: %5.2f W | Q_loss_conv: %5.2f W | T_p: %5.2f | P_pump: %5.2f W\n', ...
+            elapsed_hours, tank_temp_history(step), Q_useful_solved, Q_elec_solved, h_gap_solved, Q_loss_rad, Q_loss_conv, Tp_solved - 273.15,P_pump);
     end
     
     % Check if we hit our 45 °C target
@@ -100,11 +104,11 @@ for step = 1:max_steps
         break;
     end
     
-    % 4. Update tank temperature using BOTH thermal heat and electric immersion boost
-    % (Assume 99% efficiency for converting electricity via an immersion heater)
-    % or Assume Heat pump, COP = 3.5
-    COP = 3.5;
-    Q_total_watts = Q_useful_solved + (COP * Q_elec_solved); 
+    % 4. Update tank temperature using BOTH thermal heat and electric
+    % immersion boost
+   
+    
+    Q_total_watts = Q_useful_solved + (Q_elec_solved - P_pump); 
     Q_total_joules = Q_total_watts * dt;
     T_tank = T_tank + Q_total_joules / (M_tank * params.Cp);
 end
