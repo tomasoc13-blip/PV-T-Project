@@ -22,7 +22,7 @@ params.P = 3.14*(D_i);
 params.L = 5; 
 params.Lgap = 0.05;
 
-params.h_gap = 2; 
+params.h_gap = 2; % Overwritten later, can remove
 
 Re_D = 4*mdot/(3.14*D_i*mu);
 Pr = 4182*mu/k_water;
