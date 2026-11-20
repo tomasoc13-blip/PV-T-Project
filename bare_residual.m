@@ -27,17 +27,18 @@ function [F1, Tout, Q_useful, Q_elec, Q_loss_conv, Q_loss_rad] = bare_residual(T
     % Electrical power generated (W)
     Q_elec = eta_elec * G * Ac;
     
-    % 1. Calculate T_out using the constant wall temperature HX equation
+    % Calculate T_out using the constant wall temperature HX equation
     Tout = Tp - (Tp - Tin) * exp(-(P * L * hfi) / (mdot * Cp));
     
-    % 2. Calculate useful thermal heat removed by water
-    Q_useful = mdot * Cp * (Tout - Tin);
-    
-    % 3. Calculate top losses (convection to wind + radiation to sky)
+    %  Calculate useful thermal heat removed by water
+    %Q_useful = mdot * Cp * (Tout - Tin);
+    Q_useful = 0; % pure thermal
+
+    % Calculate top losses (convection to wind + radiation to sky)
     Q_loss_conv = h_wind * Ac * (Tp - Tamb);
     Q_loss_rad  = eps_p * sigma * Ac * (Tp^4 - Tsky^4);
     
-    % 4. The Residual
+    
     Net_Solar_Thermal = (alpha * G * Ac) - Q_elec;
     F1 = Net_Solar_Thermal - Q_useful - (Q_loss_conv + Q_loss_rad);
 end
